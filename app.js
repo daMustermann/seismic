@@ -104,43 +104,6 @@ function initMap() {
             });
         }
     });
-
-    map.addLayer(markersLayer);
-}
-
-function initGlobe() {
-    if (cesiumViewer) return;
-
-    cesiumViewer = new Cesium.Viewer('globe', {
-        animation: false,
-        baseLayerPicker: false,
-        fullscreenButton: false,
-        geocoder: false,
-        homeButton: false,
-        infoBox: true,
-        sceneModePicker: false,
-        selectionIndicator: true,
-        timeline: false,
-        navigationHelpButton: false,
-        scene3DOnly: true,
-        skyBox: false,
-        skyAtmosphere: new Cesium.SkyAtmosphere(),
-        imageryProvider: new Cesium.UrlTemplateImageryProvider({
-            url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-            subdomains: ['a', 'b', 'c', 'd']
-        })
-    });
-
-    cesiumViewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f172a');
-    cesiumViewer.scene.globe.enableLighting = false;
-    cesiumViewer.cesiumWidget.creditContainer.style.display = 'none';
-
-    console.log('Cesium globe initialized with CartoDB Dark Matter tiles');
-}
-
-function toggleView() {
-    isGlobeView = !isGlobeView;
-
     if (isGlobeView) {
         dom.map.classList.add('hidden');
         dom.globe.classList.add('active');
