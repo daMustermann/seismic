@@ -75,15 +75,23 @@ function initGlobe() {
         return;
     }
 
-    // Check for token
-    if (typeof CESIUM_TOKEN !== 'undefined') {
+    let imageryProvider;
+
+    // Check for valid token
+    if (typeof CESIUM_TOKEN !== 'undefined' && CESIUM_TOKEN !== 'YOUR_SECRET_TOKEN') {
         Cesium.Ion.defaultAccessToken = CESIUM_TOKEN;
+        imageryProvider = new Cesium.IonImageryProvider({ assetId: 3 }); // Bing Maps Aerial
     } else {
-        console.warn('CESIUM_TOKEN not found. Globe imagery may not load.');
+        console.warn('CESIUM_TOKEN not found or invalid. Using fallback imagery.');
+        // Fallback to CartoDB Dark Matter (matches 2D map, no token needed)
+        imageryProvider = new Cesium.UrlTemplateImageryProvider({
+            url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            credit: 'Map tiles by Carto, under CC BY 3.0. Data by OpenStreetMap, under ODbL.'
+        });
     }
 
     cesiumViewer = new Cesium.Viewer('globe', {
-        imageryProvider: new Cesium.IonImageryProvider({ assetId: 3 }), // Bing Maps Aerial with Labels
+        imageryProvider: imageryProvider,
         baseLayerPicker: false,
         geocoder: false,
         homeButton: false,
@@ -174,6 +182,7 @@ function initMap() {
             });
         }
     });
+    markersLayer.addTo(map); // Add layer to map
 
     // Initial view state check
     if (isGlobeView) {
@@ -300,9 +309,12 @@ function startPlayback() {
         if (currentTime >= endTime) {
             pausePlayback();
             currentTime = endTime;
+            // Ensure we show all quakes at the end
+            renderQuakes(false);
+        } else {
+            updatePlaybackDisplay();
+            renderQuakes(true);
         }
-        updatePlaybackDisplay();
-        renderQuakes(true);
     }, 50);
 }
 
