@@ -26,7 +26,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create config.js
-        run: echo "const CESIUM_TOKEN = '${{ secrets.CESIUM_TOKEN }}';" > config.js
+        env:
+          CESIUM_TOKEN: ${{ secrets.CESIUM_TOKEN }}
+        run: echo "const CESIUM_TOKEN = '$CESIUM_TOKEN';" > config.js
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
