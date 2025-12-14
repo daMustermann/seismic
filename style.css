@@ -8,7 +8,6 @@
     --danger-color: #ef4444;
     --warning-color: #f59e0b;
     --success-color: #10b981;
-
     --font-main: 'Outfit', sans-serif;
 }
 
@@ -36,6 +35,91 @@ body {
     height: 100%;
     z-index: 1;
     background: #0f172a;
+}
+
+#globe {
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    background: #0f172a;
+    display: none;
+}
+
+#globe.active {
+    display: block;
+}
+
+#map.hidden {
+    display: none;
+}
+
+/* Shake Animation for Big Earthquakes */
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateX(-4px);
+    }
+
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateX(4px);
+    }
+}
+
+#app.shaking {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* View Toggle Button */
+.view-toggle {
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1001;
+    pointer-events: auto;
+}
+
+.view-toggle-btn {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--text-color);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-main);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.view-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-color);
+}
+
+.view-toggle-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.view-toggle-btn.active {
+    background: var(--accent-color);
+    color: var(--bg-color);
 }
 
 /* UI Overlay */
@@ -462,10 +546,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     transform-box: fill-box;
 }
 
-/* ============================================
-   STATISTICS DASHBOARD
-   ============================================ */
-
+/* Statistics Dashboard */
 .stats-dashboard {
     border-top: 1px solid var(--glass-border);
     background: rgba(0, 0, 0, 0.2);
@@ -555,7 +636,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
     margin-bottom: 0.75rem;
 }
 
-/* Bar Chart */
 .bar-chart {
     display: flex;
     align-items: flex-end;
@@ -615,7 +695,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
     border-radius: 2px;
 }
 
-/* Regions List */
 .regions-list {
     display: flex;
     flex-direction: column;
@@ -659,10 +738,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     color: var(--text-muted);
 }
 
-/* ============================================
-   MARKER CLUSTER STYLING (Dark Theme)
-   ============================================ */
-
+/* Marker Cluster Styling */
 .marker-cluster {
     background: rgba(15, 23, 42, 0.8) !important;
     border: 2px solid var(--accent-color) !important;
@@ -702,7 +778,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
     background: rgba(239, 68, 68, 0.7) !important;
 }
 
-/* Hide old stats footer */
 .stats-footer {
     display: none;
 }

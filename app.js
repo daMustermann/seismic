@@ -1,5 +1,5 @@
 // Version
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 
 // Configuration
 console.log(`Seismic v${VERSION} initialized`);
@@ -24,14 +24,22 @@ let earthquakeData = [];
 let audioContext = null;
 let isPlaying = false;
 let playbackInterval;
-let playbackSpeed = 1000 * 60 * 60 * 1; // 1 hour per tick
+let playbackSpeed = 1000 * 60 * 60 * 1;
 let currentTime = null;
 let startTime = null;
 let endTime = null;
 let refreshTimer = null;
 
+// Globe state
+let cesiumViewer = null;
+let isGlobeView = false;
+let globeEntities = [];
+
 // DOM Elements
 const dom = {
+    app: document.getElementById('app'),
+    map: document.getElementById('map'),
+    globe: document.getElementById('globe'),
     timeFilter: document.getElementById('timeFilter'),
     magFilter: document.getElementById('magFilter'),
     quakeList: document.getElementById('quakeList'),
@@ -47,7 +55,9 @@ const dom = {
     dashboardToggle: document.getElementById('dashboardToggle'),
     dashboardContent: document.getElementById('dashboardContent'),
     magChart: document.getElementById('magChart'),
-    topRegions: document.getElementById('topRegions')
+    topRegions: document.getElementById('topRegions'),
+    viewToggle: document.getElementById('viewToggle'),
+    viewToggleText: document.getElementById('viewToggleText')
 };
 
 // Initialize Application
@@ -55,9 +65,15 @@ function init() {
     initMap();
     setupEventListeners();
     fetchData();
-
-    // Auto Refresh
     refreshTimer = setInterval(checkForUpdates, CONFIG.refreshInterval);
+}
+
+// Shake the UI for big earthquakes
+function triggerShake() {
+    dom.app.classList.add('shaking');
+    setTimeout(() => {
+        dom.app.classList.remove('shaking');
+    }, 500);
 }
 
 // Initialize Leaflet Map with Clustering
@@ -78,7 +94,6 @@ function initMap() {
 
     L.control.attribution({ position: 'bottomright' }).addTo(map);
 
-    // Use MarkerClusterGroup instead of regular LayerGroup
     markersLayer = L.markerClusterGroup({
         maxClusterRadius: 50,
         spiderfyOnMaxZoom: true,
@@ -107,6 +122,116 @@ function initMap() {
     map.addLayer(markersLayer);
 }
 
+// Initialize Cesium Globe
+function initGlobe() {
+    if (cesiumViewer) return;
+
+    // Use ion default access token (free tier)
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0ZjY5NzM1Ny1jZDVmLTQxMDQtYTk4My0zNzZjNzU3ZDdjMzMiLCJpZCI6MjU5LCJpYXQiOjE1MTgxOTc2Mzd9.Qfxd8wbtyL5b-0zOjB4O9EChFH0CFG_qHYU8FMPrKEc';
+
+    cesiumViewer = new Cesium.Viewer('globe', {
+        animation: false,
+        baseLayerPicker: false,
+        fullscreenButton: false,
+        geocoder: false,
+        homeButton: false,
+        infoBox: true,
+        sceneModePicker: false,
+        selectionIndicator: true,
+        timeline: false,
+        navigationHelpButton: false,
+        scene3DOnly: true,
+        skyBox: false,
+        skyAtmosphere: new Cesium.SkyAtmosphere(),
+        contextOptions: {
+            webgl: { alpha: true }
+        }
+    });
+
+    // Dark theme
+    cesiumViewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f172a');
+    cesiumViewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#1e293b');
+
+    // Remove Cesium branding
+    cesiumViewer.cesiumWidget.creditContainer.style.display = 'none';
+
+    console.log('Cesium globe initialized');
+}
+
+// Toggle between map and globe view
+function toggleView() {
+    isGlobeView = !isGlobeView;
+
+    if (isGlobeView) {
+        // Switch to globe
+        dom.map.classList.add('hidden');
+        dom.globe.classList.add('active');
+        dom.viewToggle.classList.add('active');
+        dom.viewToggleText.textContent = '2D Map';
+
+        if (!cesiumViewer) {
+            initGlobe();
+        }
+
+        renderGlobeQuakes();
+    } else {
+        // Switch to map
+        dom.map.classList.remove('hidden');
+        dom.globe.classList.remove('active');
+        dom.viewToggle.classList.remove('active');
+        dom.viewToggleText.textContent = '3D Globe';
+
+        // Refresh map size
+        setTimeout(() => map.invalidateSize(), 100);
+    }
+}
+
+// Render earthquakes on the globe
+function renderGlobeQuakes() {
+    if (!cesiumViewer) return;
+
+    // Clear existing entities
+    cesiumViewer.entities.removeAll();
+
+    earthquakeData.forEach((quake) => {
+        const props = quake.properties;
+        const coords = quake.geometry.coordinates;
+        const mag = props.mag;
+        const color = getMagColorCesium(mag);
+        const size = Math.max(10000, mag * 15000);
+
+        cesiumViewer.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(coords[0], coords[1]),
+            point: {
+                pixelSize: Math.max(6, mag * 3),
+                color: color,
+                outlineColor: Cesium.Color.WHITE.withAlpha(0.5),
+                outlineWidth: 1
+            },
+            ellipse: {
+                semiMinorAxis: size,
+                semiMajorAxis: size,
+                material: color.withAlpha(0.3),
+                outline: false
+            },
+            name: props.place,
+            description: `
+                <p><strong>Magnitude:</strong> ${mag.toFixed(1)}</p>
+                <p><strong>Depth:</strong> ${coords[2]} km</p>
+                <p><strong>Time:</strong> ${new Date(props.time).toLocaleString()}</p>
+                <p><a href="${props.url}" target="_blank">View on USGS</a></p>
+            `
+        });
+    });
+}
+
+function getMagColorCesium(mag) {
+    if (mag >= 7.0) return Cesium.Color.fromCssColorString('#ef4444');
+    if (mag >= 6.0) return Cesium.Color.fromCssColorString('#f97316');
+    if (mag >= 5.0) return Cesium.Color.fromCssColorString('#eab308');
+    return Cesium.Color.fromCssColorString('#10b981');
+}
+
 // Setup Event Listeners
 function setupEventListeners() {
     dom.timeFilter.addEventListener('change', () => {
@@ -127,11 +252,12 @@ function setupEventListeners() {
         renderQuakes(true);
     });
 
-    // Dashboard toggle
     dom.dashboardToggle.addEventListener('click', () => {
         dom.dashboardToggle.classList.toggle('active');
         dom.dashboardContent.classList.toggle('open');
     });
+
+    dom.viewToggle.addEventListener('click', toggleView);
 }
 
 // Audio System
@@ -248,6 +374,10 @@ async function fetchData() {
         updatePlaybackDisplay();
         renderQuakes(false);
 
+        if (isGlobeView) {
+            renderGlobeQuakes();
+        }
+
     } catch (error) {
         console.error('Error fetching earthquake data:', error);
         dom.quakeList.innerHTML = '<div class="error-msg">Failed to load data. Please try again.</div>';
@@ -275,6 +405,7 @@ async function checkForUpdates() {
         if (newFeatures.length === 0) return;
 
         let hasNew = false;
+        let bigQuakeDetected = false;
         const currentIds = new Set(earthquakeData.map(q => q.id));
 
         newFeatures.forEach(quake => {
@@ -282,10 +413,17 @@ async function checkForUpdates() {
                 earthquakeData.push(quake);
                 hasNew = true;
 
-                initAudio();
-                playQuakeSound(quake.properties.mag);
+                const mag = quake.properties.mag;
 
-                console.log('New Earthquake:', quake.properties.place);
+                // Trigger shake for M6+ earthquakes
+                if (mag >= 6.0) {
+                    bigQuakeDetected = true;
+                }
+
+                initAudio();
+                playQuakeSound(mag);
+
+                console.log('New Earthquake:', quake.properties.place, `M${mag}`);
             }
         });
 
@@ -296,6 +434,15 @@ async function checkForUpdates() {
             updateStats();
             updateDashboard();
             renderQuakes(false);
+
+            if (isGlobeView) {
+                renderGlobeQuakes();
+            }
+
+            // Shake the UI for big quakes
+            if (bigQuakeDetected) {
+                triggerShake();
+            }
         }
 
     } catch (error) {
@@ -384,7 +531,13 @@ function renderQuakes(isPlayback = false) {
             </div>
         `;
         el.addEventListener('click', () => {
-            map.flyTo(latLng, 8);
+            if (isGlobeView && cesiumViewer) {
+                cesiumViewer.camera.flyTo({
+                    destination: Cesium.Cartesian3.fromDegrees(coords[0], coords[1], 1000000)
+                });
+            } else {
+                map.flyTo(latLng, 8);
+            }
         });
         dom.quakeList.appendChild(el);
     });
@@ -397,7 +550,6 @@ function updateStats() {
     const max = Math.max(...earthquakeData.map(q => q.properties.mag));
     dom.maxMag.textContent = isFinite(max) ? max.toFixed(1) : '0.0';
 
-    // Average depth
     if (earthquakeData.length > 0) {
         const totalDepth = earthquakeData.reduce((sum, q) => sum + q.geometry.coordinates[2], 0);
         const avgDepth = totalDepth / earthquakeData.length;
@@ -414,7 +566,6 @@ function updateDashboard() {
 }
 
 function updateMagnitudeChart() {
-    // Count by magnitude ranges
     const ranges = [
         { min: 2.5, max: 4.0, color: '#10b981', count: 0 },
         { min: 4.0, max: 5.0, color: '#eab308', count: 0 },
@@ -441,19 +592,16 @@ function updateMagnitudeChart() {
 }
 
 function updateTopRegions() {
-    // Extract region from place string
     const regionCounts = {};
 
     earthquakeData.forEach(q => {
         const place = q.properties.place || 'Unknown';
-        // Get region after "of " or use whole place
         const match = place.match(/of\s+(.+)$/i);
         const region = match ? match[1].trim() : place;
 
         regionCounts[region] = (regionCounts[region] || 0) + 1;
     });
 
-    // Sort and get top 5
     const sortedRegions = Object.entries(regionCounts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
@@ -480,10 +628,10 @@ function setLoading(isLoading) {
 }
 
 function getMagColor(mag) {
-    if (mag >= 7.0) return '#ef4444'; // Red
-    if (mag >= 6.0) return '#f97316'; // Orange
-    if (mag >= 5.0) return '#eab308'; // Yellow
-    return '#10b981'; // Green
+    if (mag >= 7.0) return '#ef4444';
+    if (mag >= 6.0) return '#f97316';
+    if (mag >= 5.0) return '#eab308';
+    return '#10b981';
 }
 
 function formatTimeAgo(timestamp) {

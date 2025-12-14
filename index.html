@@ -14,6 +14,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 
+    <!-- Cesium CSS -->
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,12 +28,13 @@
 <body>
     <div id="app">
         <div id="map"></div>
+        <div id="globe"></div>
 
         <div class="overlay-container">
             <header class="glass-panel">
                 <div class="header-title">
                     <h1>Seismic</h1>
-                    <span class="version-badge">v1.0.0</span>
+                    <span class="version-badge">v1.1.0</span>
                 </div>
                 <div class="live-indicator">
                     <span class="pulse-dot"></span>
@@ -55,7 +59,6 @@
                     </div>
                 </div>
                 <div id="quakeList" class="quake-list">
-                    <!-- List items will be injected here -->
                     <div class="loading-spinner">Loading data...</div>
                 </div>
 
@@ -68,7 +71,6 @@
                         </svg>
                     </button>
                     <div id="dashboardContent" class="dashboard-content">
-                        <!-- Quick Stats Row -->
                         <div class="quick-stats">
                             <div class="stat-card">
                                 <span class="stat-label">Total Events</span>
@@ -84,7 +86,6 @@
                             </div>
                         </div>
 
-                        <!-- Magnitude Distribution -->
                         <div class="chart-section">
                             <h3>Magnitude Distribution</h3>
                             <div id="magChart" class="bar-chart"></div>
@@ -100,7 +101,6 @@
                             </div>
                         </div>
 
-                        <!-- Top Regions -->
                         <div class="chart-section">
                             <h3>Most Active Regions</h3>
                             <div id="topRegions" class="regions-list"></div>
@@ -128,6 +128,17 @@
                     </label>
                 </div>
             </div>
+
+            <!-- View Toggle -->
+            <div class="view-toggle">
+                <button id="viewToggle" class="view-toggle-btn">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+                    </svg>
+                    <span id="viewToggleText">3D Globe</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -137,6 +148,9 @@
 
     <!-- Leaflet MarkerCluster JS -->
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+    <!-- Cesium JS for 3D Globe -->
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Cesium.js"></script>
 
     <script src="app.js"></script>
 </body>
