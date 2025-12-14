@@ -33,7 +33,6 @@ let refreshTimer = null;
 // Globe state
 let cesiumViewer = null;
 let isGlobeView = false;
-let globeEntities = [];
 
 // DOM Elements
 const dom = {
@@ -122,12 +121,9 @@ function initMap() {
     map.addLayer(markersLayer);
 }
 
-// Initialize Cesium Globe
+// Initialize Cesium Globe with OpenStreetMap (no token needed)
 function initGlobe() {
     if (cesiumViewer) return;
-
-    // Use ion default access token (free tier)
-    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0ZjY5NzM1Ny1jZDVmLTQxMDQtYTk4My0zNzZjNzU3ZDdjMzMiLCJpZCI6MjU5LCJpYXQiOjE1MTgxOTc2Mzd9.Qfxd8wbtyL5b-0zOjB4O9EChFH0CFG_qHYU8FMPrKEc';
 
     cesiumViewer = new Cesium.Viewer('globe', {
         animation: false,
@@ -143,19 +139,19 @@ function initGlobe() {
         scene3DOnly: true,
         skyBox: false,
         skyAtmosphere: new Cesium.SkyAtmosphere(),
-        contextOptions: {
-            webgl: { alpha: true }
-        }
+        imageryProvider: new Cesium.OpenStreetMapImageryProvider({
+            url: 'https://tile.openstreetmap.org/'
+        })
     });
 
-    // Dark theme
+    // Dark styling
     cesiumViewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f172a');
-    cesiumViewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#1e293b');
+    cesiumViewer.scene.globe.enableLighting = false;
 
     // Remove Cesium branding
     cesiumViewer.cesiumWidget.creditContainer.style.display = 'none';
 
-    console.log('Cesium globe initialized');
+    console.log('Cesium globe initialized with OSM tiles');
 }
 
 // Toggle between map and globe view
@@ -163,7 +159,6 @@ function toggleView() {
     isGlobeView = !isGlobeView;
 
     if (isGlobeView) {
-        // Switch to globe
         dom.map.classList.add('hidden');
         dom.globe.classList.add('active');
         dom.viewToggle.classList.add('active');
@@ -175,13 +170,11 @@ function toggleView() {
 
         renderGlobeQuakes();
     } else {
-        // Switch to map
         dom.map.classList.remove('hidden');
         dom.globe.classList.remove('active');
         dom.viewToggle.classList.remove('active');
         dom.viewToggleText.textContent = '3D Globe';
 
-        // Refresh map size
         setTimeout(() => map.invalidateSize(), 100);
     }
 }
@@ -190,7 +183,6 @@ function toggleView() {
 function renderGlobeQuakes() {
     if (!cesiumViewer) return;
 
-    // Clear existing entities
     cesiumViewer.entities.removeAll();
 
     earthquakeData.forEach((quake) => {
@@ -415,7 +407,6 @@ async function checkForUpdates() {
 
                 const mag = quake.properties.mag;
 
-                // Trigger shake for M6+ earthquakes
                 if (mag >= 6.0) {
                     bigQuakeDetected = true;
                 }
@@ -439,7 +430,6 @@ async function checkForUpdates() {
                 renderGlobeQuakes();
             }
 
-            // Shake the UI for big quakes
             if (bigQuakeDetected) {
                 triggerShake();
             }
@@ -514,7 +504,6 @@ function renderQuakes(isPlayback = false) {
         markersLayer.addLayer(marker);
     });
 
-    // Render List
     listQuakes.slice(0, listLimit).forEach((quake) => {
         const props = quake.properties;
         const coords = quake.geometry.coordinates;
