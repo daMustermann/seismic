@@ -21,7 +21,7 @@ A real-time, interactive earthquake visualization map powered by USGS data.
 
 ## Live Demo
 
-Visit the live app: [https://YOUR_USERNAME.github.io/Earthquaker](https://YOUR_USERNAME.github.io/Earthquaker)
+Visit the live app: [https://daMustermann.github.io/seismic](https://daMustermann.github.io/seismic)
 
 ## Local Development
 
