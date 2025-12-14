@@ -108,11 +108,8 @@ function initMap() {
     map.addLayer(markersLayer);
 }
 
-async function initGlobe() {
+function initGlobe() {
     if (cesiumViewer) return;
-
-    // Use Cesium Ion with default token for Bing Maps imagery
-    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc5YzciLCJpZCI6NTc2ODksImlhdCI6MTYyMjA3Mzc3N30.XcKpgANiY19MC4bdFUXMVEBToBmqS8kuYpUlxJHYZxk';
 
     cesiumViewer = new Cesium.Viewer('globe', {
         animation: false,
@@ -127,23 +124,18 @@ async function initGlobe() {
         navigationHelpButton: false,
         scene3DOnly: true,
         skyBox: false,
-        skyAtmosphere: new Cesium.SkyAtmosphere()
+        skyAtmosphere: new Cesium.SkyAtmosphere(),
+        imageryProvider: new Cesium.UrlTemplateImageryProvider({
+            url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+            subdomains: ['a', 'b', 'c', 'd']
+        })
     });
-
-    // Add dark satellite imagery
-    try {
-        const imagery = await Cesium.IonImageryProvider.fromAssetId(3);
-        cesiumViewer.scene.imageryLayers.removeAll();
-        cesiumViewer.scene.imageryLayers.addImageryProvider(imagery);
-    } catch (e) {
-        console.warn('Could not load Ion imagery, using default');
-    }
 
     cesiumViewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f172a');
     cesiumViewer.scene.globe.enableLighting = false;
     cesiumViewer.cesiumWidget.creditContainer.style.display = 'none';
 
-    console.log('Cesium globe initialized');
+    console.log('Cesium globe initialized with CartoDB Dark Matter tiles');
 }
 
 function toggleView() {
