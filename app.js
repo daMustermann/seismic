@@ -70,6 +70,57 @@ function triggerShake() {
 }
 
 async function initGlobe() {
+    console.log('Initializing Globe...');
+    if (typeof Cesium === 'undefined') {
+        console.error('Cesium not loaded');
+        return;
+    }
+
+    // Use OpenStreetMap tiles - Most reliable, no token needed
+    const imageryProvider = new Cesium.OpenStreetMapImageryProvider({
+        url: 'https://a.tile.openstreetmap.org/'
+    });
+
+    try {
+        cesiumViewer = new Cesium.Viewer('globe', {
+            imageryProvider: imageryProvider,
+            baseLayerPicker: false,
+            geocoder: false,
+            homeButton: false,
+            infoBox: false,
+            sceneModePicker: false,
+            selectionIndicator: false,
+            timeline: false,
+            navigationHelpButton: false,
+            animation: false,
+            fullscreenButton: false,
+            creditContainer: document.createElement('div')
+        });
+
+        // Dark theme for globe background (space color)
+        cesiumViewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f172a');
+        cesiumViewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0f172a');
+
+        // Remove default click handler
+        cesiumViewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        // Add click handler for quakes
+        cesiumViewer.screenSpaceEventHandler.setInputAction(function onLeftClick(movement) {
+            const pickedObject = cesiumViewer.scene.pick(movement.position);
+            if (Cesium.defined(pickedObject) && pickedObject.id) {
+                const entity = pickedObject.id;
+                cesiumViewer.flyTo(entity, {
+                    duration: 1.5,
+                    offset: new Cesium.HeadingPitchRange(0, -Cesium.Math.PI_OVER_FOUR, 500000)
+                });
+            }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        console.log('Globe initialized successfully with OpenStreetMap');
+        renderGlobeQuakes();
+    } catch (error) {
+        console.error('Error initializing Cesium Viewer:', error);
+    }
 }
 
 function toggleView() {
@@ -80,7 +131,6 @@ function toggleView() {
         dom.viewToggle.classList.add('active');
         dom.viewToggleText.textContent = '2D Map';
         if (!cesiumViewer) {
-            // Slight delay to ensure container is visible
             setTimeout(initGlobe, 50);
         } else {
             renderGlobeQuakes();
@@ -129,9 +179,8 @@ function initMap() {
             });
         }
     });
-    markersLayer.addTo(map); // Add layer to map
+    markersLayer.addTo(map);
 
-    // Initial view state check
     if (isGlobeView) {
         dom.map.classList.add('hidden');
         dom.globe.classList.add('active');
@@ -256,7 +305,6 @@ function startPlayback() {
         if (currentTime >= endTime) {
             pausePlayback();
             currentTime = endTime;
-            // Ensure we show all quakes at the end
             renderQuakes(false);
         } else {
             updatePlaybackDisplay();
