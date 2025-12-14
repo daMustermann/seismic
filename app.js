@@ -7,7 +7,7 @@ const CONFIG = {
     tileLayer: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     apiBase: 'https://earthquake.usgs.gov/fdsnws/event/1/query',
-    refreshInterval: 5 * 60 * 1000 // 5 minutes
+    refreshInterval: 5 * 60 * 1000
 };
 
 function getMagClass(mag) {
@@ -29,8 +29,6 @@ let currentTime = null;
 let startTime = null;
 let endTime = null;
 let refreshTimer = null;
-
-// Globe state
 let cesiumViewer = null;
 let isGlobeView = false;
 
@@ -59,7 +57,6 @@ const dom = {
     viewToggleText: document.getElementById('viewToggleText')
 };
 
-// Initialize Application
 function init() {
     initMap();
     setupEventListeners();
@@ -67,15 +64,11 @@ function init() {
     refreshTimer = setInterval(checkForUpdates, CONFIG.refreshInterval);
 }
 
-// Shake the UI for big earthquakes
 function triggerShake() {
     dom.app.classList.add('shaking');
-    setTimeout(() => {
-        dom.app.classList.remove('shaking');
-    }, 500);
+    setTimeout(() => dom.app.classList.remove('shaking'), 500);
 }
 
-// Initialize Leaflet Map with Clustering
 function initMap() {
     map = L.map('map', {
         zoomControl: false,
@@ -99,32 +92,25 @@ function initMap() {
         showCoverageOnHover: false,
         zoomToBoundsOnClick: true,
         disableClusteringAtZoom: 10,
-        iconCreateFunction: function (cluster) {
+        iconCreateFunction: function(cluster) {
             const count = cluster.getChildCount();
             let size = 'small';
-            let className = 'marker-cluster marker-cluster-';
-
-            if (count >= 100) {
-                size = 'large';
-            } else if (count >= 10) {
-                size = 'medium';
-            }
-
+            if (count >= 100) size = 'large';
+            else if (count >= 10) size = 'medium';
             return L.divIcon({
                 html: '<div>' + count + '</div>',
-                className: className + size,
+                className: 'marker-cluster marker-cluster-' + size,
                 iconSize: L.point(40, 40)
             });
         }
     });
-
+    
     map.addLayer(markersLayer);
 }
 
-// Initialize Cesium Globe with OpenStreetMap (no token needed)
 function initGlobe() {
     if (cesiumViewer) return;
-
+    
     cesiumViewer = new Cesium.Viewer('globe', {
         animation: false,
         baseLayerPicker: false,
@@ -139,59 +125,48 @@ function initGlobe() {
         scene3DOnly: true,
         skyBox: false,
         skyAtmosphere: new Cesium.SkyAtmosphere(),
-        imageryProvider: new Cesium.OpenStreetMapImageryProvider({
-            url: 'https://tile.openstreetmap.org/'
+        imageryProvider: new Cesium.ArcGisMapServerImageryProvider({
+            url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
         })
     });
-
-    // Dark styling
+    
     cesiumViewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f172a');
     cesiumViewer.scene.globe.enableLighting = false;
-
-    // Remove Cesium branding
     cesiumViewer.cesiumWidget.creditContainer.style.display = 'none';
-
-    console.log('Cesium globe initialized with OSM tiles');
+    
+    console.log('Cesium globe initialized with ESRI satellite imagery');
 }
 
-// Toggle between map and globe view
 function toggleView() {
     isGlobeView = !isGlobeView;
-
+    
     if (isGlobeView) {
         dom.map.classList.add('hidden');
         dom.globe.classList.add('active');
         dom.viewToggle.classList.add('active');
         dom.viewToggleText.textContent = '2D Map';
-
-        if (!cesiumViewer) {
-            initGlobe();
-        }
-
+        if (!cesiumViewer) initGlobe();
         renderGlobeQuakes();
     } else {
         dom.map.classList.remove('hidden');
         dom.globe.classList.remove('active');
         dom.viewToggle.classList.remove('active');
         dom.viewToggleText.textContent = '3D Globe';
-
         setTimeout(() => map.invalidateSize(), 100);
     }
 }
 
-// Render earthquakes on the globe
 function renderGlobeQuakes() {
     if (!cesiumViewer) return;
-
     cesiumViewer.entities.removeAll();
-
+    
     earthquakeData.forEach((quake) => {
         const props = quake.properties;
         const coords = quake.geometry.coordinates;
         const mag = props.mag;
         const color = getMagColorCesium(mag);
         const size = Math.max(10000, mag * 15000);
-
+        
         cesiumViewer.entities.add({
             position: Cesium.Cartesian3.fromDegrees(coords[0], coords[1]),
             point: {
@@ -224,7 +199,6 @@ function getMagColorCesium(mag) {
     return Cesium.Color.fromCssColorString('#10b981');
 }
 
-// Setup Event Listeners
 function setupEventListeners() {
     dom.timeFilter.addEventListener('change', () => {
         fetchData();
@@ -232,9 +206,7 @@ function setupEventListeners() {
         refreshTimer = setInterval(checkForUpdates, CONFIG.refreshInterval);
     });
     dom.magFilter.addEventListener('change', fetchData);
-
     dom.playBtn.addEventListener('click', togglePlayback);
-
     dom.timeSlider.addEventListener('input', (e) => {
         if (!startTime || !endTime) return;
         const percent = e.target.value;
@@ -243,16 +215,13 @@ function setupEventListeners() {
         updatePlaybackDisplay();
         renderQuakes(true);
     });
-
     dom.dashboardToggle.addEventListener('click', () => {
         dom.dashboardToggle.classList.toggle('active');
         dom.dashboardContent.classList.toggle('open');
     });
-
     dom.viewToggle.addEventListener('click', toggleView);
 }
 
-// Audio System
 function initAudio() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -264,35 +233,25 @@ function initAudio() {
 
 function playQuakeSound(mag) {
     if (!dom.audioToggle.checked || !audioContext) return;
-
     const osc = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-
     osc.connect(gainNode);
     gainNode.connect(audioContext.destination);
-
     const frequency = Math.max(80, 600 - (mag * 60));
     osc.frequency.value = frequency;
-
     const volume = Math.min(0.3, Math.max(0.05, (mag - 2) / 20));
     osc.type = mag > 5 ? 'triangle' : 'sine';
-
     const now = audioContext.currentTime;
     gainNode.gain.setValueAtTime(0, now);
     gainNode.gain.linearRampToValueAtTime(volume, now + 0.05);
     gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5 + (mag * 0.2));
-
     osc.start(now);
     osc.stop(now + 2);
 }
 
-// Playback Logic
 function togglePlayback() {
-    if (isPlaying) {
-        pausePlayback();
-    } else {
-        startPlayback();
-    }
+    if (isPlaying) pausePlayback();
+    else startPlayback();
 }
 
 function startPlayback() {
@@ -300,19 +259,15 @@ function startPlayback() {
     isPlaying = true;
     dom.iconPlay.style.display = 'none';
     dom.iconPause.style.display = 'block';
-
     if (!currentTime || currentTime >= endTime) {
         currentTime = new Date(startTime);
     }
-
     playbackInterval = setInterval(() => {
         currentTime = new Date(currentTime.getTime() + playbackSpeed);
-
         if (currentTime >= endTime) {
             pausePlayback();
             currentTime = endTime;
         }
-
         updatePlaybackDisplay();
         renderQuakes(true);
     }, 50);
@@ -327,49 +282,34 @@ function pausePlayback() {
 
 function updatePlaybackDisplay() {
     if (!startTime || !endTime) return;
-
     dom.currentDate.textContent = currentTime.toLocaleString();
-
     const totalDuration = endTime - startTime;
     const elapsed = currentTime - startTime;
     const percent = (elapsed / totalDuration) * 100;
-
     dom.timeSlider.value = percent;
 }
 
-// Fetch Data from USGS API
 async function fetchData() {
     setLoading(true);
     pausePlayback();
-
     const timeRange = dom.timeFilter.value;
     const minMag = dom.magFilter.value;
-
     endTime = new Date();
     startTime = new Date();
-
     if (timeRange === 'day') startTime.setDate(startTime.getDate() - 1);
     if (timeRange === 'week') startTime.setDate(startTime.getDate() - 7);
     if (timeRange === 'month') startTime.setDate(startTime.getDate() - 30);
-
     currentTime = new Date(endTime);
-
     const url = `${CONFIG.apiBase}?format=geojson&starttime=${startTime.toISOString()}&minmagnitude=${minMag}&orderby=time-asc`;
-
     try {
         const response = await fetch(url);
         const data = await response.json();
         earthquakeData = data.features;
-
         updateStats();
         updateDashboard();
         updatePlaybackDisplay();
         renderQuakes(false);
-
-        if (isGlobeView) {
-            renderGlobeQuakes();
-        }
-
+        if (isGlobeView) renderGlobeQuakes();
     } catch (error) {
         console.error('Error fetching earthquake data:', error);
         dom.quakeList.innerHTML = '<div class="error-msg">Failed to load data. Please try again.</div>';
@@ -378,46 +318,32 @@ async function fetchData() {
     }
 }
 
-// Check for Updates (Auto-Refresh)
 async function checkForUpdates() {
     if (isPlaying) return;
-
     console.log('Checking for updates...');
     const minMag = dom.magFilter.value;
     const updateStartTime = new Date();
     updateStartTime.setHours(updateStartTime.getHours() - 1);
-
     const url = `${CONFIG.apiBase}?format=geojson&starttime=${updateStartTime.toISOString()}&minmagnitude=${minMag}&orderby=time-asc`;
-
     try {
         const response = await fetch(url);
         const data = await response.json();
         const newFeatures = data.features;
-
         if (newFeatures.length === 0) return;
-
         let hasNew = false;
         let bigQuakeDetected = false;
         const currentIds = new Set(earthquakeData.map(q => q.id));
-
         newFeatures.forEach(quake => {
             if (!currentIds.has(quake.id)) {
                 earthquakeData.push(quake);
                 hasNew = true;
-
                 const mag = quake.properties.mag;
-
-                if (mag >= 6.0) {
-                    bigQuakeDetected = true;
-                }
-
+                if (mag >= 6.0) bigQuakeDetected = true;
                 initAudio();
                 playQuakeSound(mag);
-
                 console.log('New Earthquake:', quake.properties.place, `M${mag}`);
             }
         });
-
         if (hasNew) {
             earthquakeData.sort((a, b) => a.properties.time - b.properties.time);
             endTime = new Date();
@@ -425,60 +351,43 @@ async function checkForUpdates() {
             updateStats();
             updateDashboard();
             renderQuakes(false);
-
-            if (isGlobeView) {
-                renderGlobeQuakes();
-            }
-
-            if (bigQuakeDetected) {
-                triggerShake();
-            }
+            if (isGlobeView) renderGlobeQuakes();
+            if (bigQuakeDetected) triggerShake();
         }
-
     } catch (error) {
         console.warn('Auto-refresh failed:', error);
     }
 }
 
-// Render Quakes on Map and Sidebar
 function renderQuakes(isPlayback = false) {
     const visibleQuakes = isPlayback
         ? earthquakeData.filter(q => new Date(q.properties.time) <= currentTime)
         : earthquakeData;
-
     markersLayer.clearLayers();
     dom.quakeList.innerHTML = '';
-
     if (visibleQuakes.length === 0) {
         if (!isPlayback) dom.quakeList.innerHTML = '<div class="empty-msg">No earthquakes found.</div>';
         return;
     }
-
     const listQuakes = [...visibleQuakes].reverse();
     const listLimit = 50;
-
     visibleQuakes.forEach((quake) => {
         const props = quake.properties;
         const coords = quake.geometry.coordinates;
         const latLng = [coords[1], coords[0]];
-
         const markerClass = getMagClass(props.mag);
         const markerColor = getMagColor(props.mag);
-
         const icon = L.divIcon({
             className: 'custom-div-icon',
             html: `<div class="quake-dot ${markerClass}" style="background-color: ${markerColor};"></div>`,
             iconSize: [20, 20],
             iconAnchor: [10, 10]
         });
-
         const marker = L.marker(latLng, { icon: icon });
-
         let popupContent = `<div class="custom-popup">
             <span class="place">${props.place}</span>
             <span class="detail">Time: ${new Date(props.time).toLocaleString()}</span>
             <span class="detail">Depth: ${coords[2]} km</span>`;
-
         if (props.felt !== null && props.felt !== undefined) {
             popupContent += `<span class="detail">Felt: ${props.felt}</span>`;
         }
@@ -491,25 +400,18 @@ function renderQuakes(isPlayback = false) {
         if (props.tsunami === 1) {
             popupContent += `<span class="detail" style="color: #ef4444; font-weight: bold;">Tsunami Warning</span>`;
         }
-
         popupContent += `<span class="mag" style="background-color: ${markerColor}">${props.mag.toFixed(1)}</span>
             <a href="${props.url}" target="_blank" style="display:block; margin-top:5px; color: #38bdf8; font-size: 0.8rem;">View on USGS</a>
         </div>`;
-
         marker.bindPopup(popupContent);
-        marker.on('click', () => {
-            map.flyTo(latLng, 8);
-        });
-
+        marker.on('click', () => map.flyTo(latLng, 8));
         markersLayer.addLayer(marker);
     });
-
     listQuakes.slice(0, listLimit).forEach((quake) => {
         const props = quake.properties;
         const coords = quake.geometry.coordinates;
         const latLng = [coords[1], coords[0]];
         const markerColor = getMagColor(props.mag);
-
         const el = document.createElement('div');
         el.className = 'quake-item';
         el.innerHTML = `
@@ -532,13 +434,10 @@ function renderQuakes(isPlayback = false) {
     });
 }
 
-// Update Basic Statistics
 function updateStats() {
     dom.totalCount.textContent = earthquakeData.length;
-
     const max = Math.max(...earthquakeData.map(q => q.properties.mag));
     dom.maxMag.textContent = isFinite(max) ? max.toFixed(1) : '0.0';
-
     if (earthquakeData.length > 0) {
         const totalDepth = earthquakeData.reduce((sum, q) => sum + q.geometry.coordinates[2], 0);
         const avgDepth = totalDepth / earthquakeData.length;
@@ -548,7 +447,6 @@ function updateStats() {
     }
 }
 
-// Update Dashboard Charts and Regions
 function updateDashboard() {
     updateMagnitudeChart();
     updateTopRegions();
@@ -561,7 +459,6 @@ function updateMagnitudeChart() {
         { min: 5.0, max: 6.0, color: '#f97316', count: 0 },
         { min: 6.0, max: 10.0, color: '#ef4444', count: 0 }
     ];
-
     earthquakeData.forEach(q => {
         const mag = q.properties.mag;
         for (const range of ranges) {
@@ -571,9 +468,7 @@ function updateMagnitudeChart() {
             }
         }
     });
-
     const maxCount = Math.max(...ranges.map(r => r.count), 1);
-
     dom.magChart.innerHTML = ranges.map(r => {
         const height = (r.count / maxCount) * 100;
         return `<div class="bar" style="height: ${Math.max(height, 5)}%; background-color: ${r.color};" data-count="${r.count}"></div>`;
@@ -582,24 +477,19 @@ function updateMagnitudeChart() {
 
 function updateTopRegions() {
     const regionCounts = {};
-
     earthquakeData.forEach(q => {
         const place = q.properties.place || 'Unknown';
         const match = place.match(/of\s+(.+)$/i);
         const region = match ? match[1].trim() : place;
-
         regionCounts[region] = (regionCounts[region] || 0) + 1;
     });
-
     const sortedRegions = Object.entries(regionCounts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
-
     if (sortedRegions.length === 0) {
         dom.topRegions.innerHTML = '<div class="empty-msg">No data</div>';
         return;
     }
-
     dom.topRegions.innerHTML = sortedRegions.map(([region, count], i) => `
         <div class="region-item">
             <div class="region-rank">${i + 1}</div>
@@ -609,7 +499,6 @@ function updateTopRegions() {
     `).join('');
 }
 
-// Helpers
 function setLoading(isLoading) {
     if (isLoading) {
         dom.quakeList.innerHTML = '<div class="loading-spinner">Loading data...</div>';
@@ -625,24 +514,17 @@ function getMagColor(mag) {
 
 function formatTimeAgo(timestamp) {
     const seconds = Math.floor((new Date() - timestamp) / 1000);
-
     let interval = seconds / 31536000;
     if (interval > 1) return Math.floor(interval) + " years ago";
-
     interval = seconds / 2592000;
     if (interval > 1) return Math.floor(interval) + " months ago";
-
     interval = seconds / 86400;
     if (interval > 1) return Math.floor(interval) + " days ago";
-
     interval = seconds / 3600;
     if (interval > 1) return Math.floor(interval) + " hours ago";
-
     interval = seconds / 60;
     if (interval > 1) return Math.floor(interval) + " minutes ago";
-
     return Math.floor(seconds) + " seconds ago";
 }
 
-// Start
 init();
