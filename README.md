@@ -1,5 +1,7 @@
 # Seismic - Global Earthquake Visualizer
 
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+
 A real-time, interactive earthquake visualization map powered by USGS data.
 
 ## Features

@@ -1,5 +1,8 @@
+// Version
+const VERSION = '1.0.0';
+
 // Configuration
-console.log('App initialized - Version 5');
+console.log(`Seismic v${VERSION} initialized`);
 const CONFIG = {
     tileLayer: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
