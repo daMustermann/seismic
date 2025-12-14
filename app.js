@@ -69,6 +69,76 @@ function triggerShake() {
     setTimeout(() => dom.app.classList.remove('shaking'), 500);
 }
 
+function initGlobe() {
+    if (typeof Cesium === 'undefined') {
+        console.error('Cesium not loaded');
+        return;
+    }
+
+    // Check for token
+    if (typeof CESIUM_TOKEN !== 'undefined') {
+        Cesium.Ion.defaultAccessToken = CESIUM_TOKEN;
+    } else {
+        console.warn('CESIUM_TOKEN not found. Globe imagery may not load.');
+    }
+
+    cesiumViewer = new Cesium.Viewer('globe', {
+        imageryProvider: new Cesium.IonImageryProvider({ assetId: 3 }), // Bing Maps Aerial with Labels
+        baseLayerPicker: false,
+        geocoder: false,
+        homeButton: false,
+        infoBox: false,
+        sceneModePicker: false,
+        selectionIndicator: false,
+        timeline: false,
+        navigationHelpButton: false,
+        animation: false,
+        fullscreenButton: false,
+        creditContainer: document.createElement('div') // Hide credits
+    });
+
+    // Dark theme for globe background
+    cesiumViewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f172a');
+    cesiumViewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0f172a');
+
+    // Remove default click handler
+    cesiumViewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // Add click handler for quakes
+    cesiumViewer.screenSpaceEventHandler.setInputAction(function onLeftClick(movement) {
+        const pickedObject = cesiumViewer.scene.pick(movement.position);
+        if (Cesium.defined(pickedObject) && pickedObject.id) {
+            // Show info or fly to
+            const entity = pickedObject.id;
+            cesiumViewer.flyTo(entity, {
+                duration: 1.5,
+                offset: new Cesium.HeadingPitchRange(0, -Cesium.Math.PI_OVER_FOUR, 500000)
+            });
+        }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+}
+
+function toggleView() {
+    isGlobeView = !isGlobeView;
+    if (isGlobeView) {
+        dom.map.classList.add('hidden');
+        dom.globe.classList.add('active');
+        dom.viewToggle.classList.add('active');
+        dom.viewToggleText.textContent = '2D Map';
+        if (!cesiumViewer) {
+            // Slight delay to ensure container is visible
+            setTimeout(initGlobe, 50);
+        }
+        renderGlobeQuakes();
+    } else {
+        dom.map.classList.remove('hidden');
+        dom.globe.classList.remove('active');
+        dom.viewToggle.classList.remove('active');
+        dom.viewToggleText.textContent = '3D Globe';
+        setTimeout(() => map.invalidateSize(), 100);
+    }
+}
+
 function initMap() {
     map = L.map('map', {
         zoomControl: false,
@@ -104,19 +174,18 @@ function initMap() {
             });
         }
     });
+
+    // Initial view state check
     if (isGlobeView) {
         dom.map.classList.add('hidden');
         dom.globe.classList.add('active');
         dom.viewToggle.classList.add('active');
         dom.viewToggleText.textContent = '2D Map';
-        if (!cesiumViewer) initGlobe();
-        renderGlobeQuakes();
     } else {
         dom.map.classList.remove('hidden');
         dom.globe.classList.remove('active');
         dom.viewToggle.classList.remove('active');
         dom.viewToggleText.textContent = '3D Globe';
-        setTimeout(() => map.invalidateSize(), 100);
     }
 }
 
