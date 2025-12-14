@@ -25,10 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create config.js
-        env:
-          CESIUM_TOKEN: ${{ secrets.CESIUM_TOKEN }}
-        run: echo "const CESIUM_TOKEN = '$CESIUM_TOKEN';" > config.js
+
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -53,5 +50,5 @@ jobs:
         with:
           token: ${{ github.token }}
           repository: ${{ github.repository }}
-          retain_days: 1
+          retain_days: 0
           keep_minimum_runs: 3

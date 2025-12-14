@@ -75,25 +75,12 @@ async function initGlobe() {
         return;
     }
 
-    let imageryProvider;
-
-    try {
-        // Check for valid token
-        if (typeof CESIUM_TOKEN !== 'undefined' && CESIUM_TOKEN !== 'YOUR_SECRET_TOKEN') {
-            Cesium.Ion.defaultAccessToken = CESIUM_TOKEN;
-            // Use Bing Maps Aerial with Labels (Asset ID 3)
-            imageryProvider = await Cesium.IonImageryProvider.fromAssetId(3);
-        } else {
-            throw new Error('Token missing or invalid');
-        }
-    } catch (e) {
-        console.warn('Cesium Ion imagery failed or token missing. Using fallback.', e);
-        // Fallback to CartoDB Dark Matter (matches 2D map, no token needed)
-        imageryProvider = new Cesium.UrlTemplateImageryProvider({
-            url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-            credit: 'Map tiles by Carto, under CC BY 3.0. Data by OpenStreetMap, under ODbL.'
-        });
+    // Use Esri World Imagery (Satellite) - High quality, no token required
+    const imageryProvider = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
+        'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer', {
+        credit: 'Esri, Maxar, Earthstar Geographics, and the GIS User Community'
     }
+    );
 
     cesiumViewer = new Cesium.Viewer('globe', {
         imageryProvider: imageryProvider,
@@ -110,7 +97,7 @@ async function initGlobe() {
         creditContainer: document.createElement('div') // Hide credits
     });
 
-    // Dark theme for globe background
+    // Dark theme for globe background (space color)
     cesiumViewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f172a');
     cesiumViewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0f172a');
 
