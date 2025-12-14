@@ -70,66 +70,6 @@ function triggerShake() {
 }
 
 async function initGlobe() {
-    console.log('Initializing Globe...');
-    if (typeof Cesium === 'undefined') {
-        console.error('Cesium not loaded');
-        return;
-    }
-
-    // Use UrlTemplateImageryProvider for Esri World Imagery (Direct tile access)
-    // This is synchronous and often more robust than the ArcGisMapServerImageryProvider
-    const imageryProvider = new Cesium.UrlTemplateImageryProvider({
-        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        credit: 'Esri, Maxar, Earthstar Geographics, and the GIS User Community'
-    });
-
-    try {
-        cesiumViewer = new Cesium.Viewer('globe', {
-            imageryProvider: imageryProvider,
-            baseLayerPicker: false,
-            geocoder: false,
-            homeButton: false,
-            infoBox: false,
-            sceneModePicker: false,
-            selectionIndicator: false,
-            timeline: false,
-            navigationHelpButton: false,
-            animation: false,
-            fullscreenButton: false,
-            creditContainer: document.createElement('div'), // Hide credits
-            contextOptions: {
-                webgl: {
-                    alpha: true
-                }
-            }
-        });
-
-        // Dark theme for globe background (space color)
-        cesiumViewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f172a');
-        cesiumViewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0f172a');
-
-        // Remove default click handler
-        cesiumViewer.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-        // Add click handler for quakes
-        cesiumViewer.screenSpaceEventHandler.setInputAction(function onLeftClick(movement) {
-            const pickedObject = cesiumViewer.scene.pick(movement.position);
-            if (Cesium.defined(pickedObject) && pickedObject.id) {
-                // Show info or fly to
-                const entity = pickedObject.id;
-                cesiumViewer.flyTo(entity, {
-                    duration: 1.5,
-                    offset: new Cesium.HeadingPitchRange(0, -Cesium.Math.PI_OVER_FOUR, 500000)
-                });
-            }
-        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-        console.log('Globe initialized successfully');
-        // Render quakes after initialization
-        renderGlobeQuakes();
-    } catch (error) {
-        console.error('Error initializing Cesium Viewer:', error);
-    }
 }
 
 function toggleView() {
