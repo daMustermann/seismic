@@ -92,7 +92,7 @@ function initMap() {
         showCoverageOnHover: false,
         zoomToBoundsOnClick: true,
         disableClusteringAtZoom: 10,
-        iconCreateFunction: function(cluster) {
+        iconCreateFunction: function (cluster) {
             const count = cluster.getChildCount();
             let size = 'small';
             if (count >= 100) size = 'large';
@@ -104,13 +104,16 @@ function initMap() {
             });
         }
     });
-    
+
     map.addLayer(markersLayer);
 }
 
-function initGlobe() {
+async function initGlobe() {
     if (cesiumViewer) return;
-    
+
+    // Use Cesium Ion with default token for Bing Maps imagery
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc5YzciLCJpZCI6NTc2ODksImlhdCI6MTYyMjA3Mzc3N30.XcKpgANiY19MC4bdFUXMVEBToBmqS8kuYpUlxJHYZxk';
+
     cesiumViewer = new Cesium.Viewer('globe', {
         animation: false,
         baseLayerPicker: false,
@@ -124,22 +127,28 @@ function initGlobe() {
         navigationHelpButton: false,
         scene3DOnly: true,
         skyBox: false,
-        skyAtmosphere: new Cesium.SkyAtmosphere(),
-        imageryProvider: new Cesium.ArcGisMapServerImageryProvider({
-            url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
-        })
+        skyAtmosphere: new Cesium.SkyAtmosphere()
     });
-    
+
+    // Add dark satellite imagery
+    try {
+        const imagery = await Cesium.IonImageryProvider.fromAssetId(3);
+        cesiumViewer.scene.imageryLayers.removeAll();
+        cesiumViewer.scene.imageryLayers.addImageryProvider(imagery);
+    } catch (e) {
+        console.warn('Could not load Ion imagery, using default');
+    }
+
     cesiumViewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f172a');
     cesiumViewer.scene.globe.enableLighting = false;
     cesiumViewer.cesiumWidget.creditContainer.style.display = 'none';
-    
-    console.log('Cesium globe initialized with ESRI satellite imagery');
+
+    console.log('Cesium globe initialized');
 }
 
 function toggleView() {
     isGlobeView = !isGlobeView;
-    
+
     if (isGlobeView) {
         dom.map.classList.add('hidden');
         dom.globe.classList.add('active');
@@ -159,14 +168,14 @@ function toggleView() {
 function renderGlobeQuakes() {
     if (!cesiumViewer) return;
     cesiumViewer.entities.removeAll();
-    
+
     earthquakeData.forEach((quake) => {
         const props = quake.properties;
         const coords = quake.geometry.coordinates;
         const mag = props.mag;
         const color = getMagColorCesium(mag);
         const size = Math.max(10000, mag * 15000);
-        
+
         cesiumViewer.entities.add({
             position: Cesium.Cartesian3.fromDegrees(coords[0], coords[1]),
             point: {
