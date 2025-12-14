@@ -338,6 +338,12 @@ select option {
     background: rgba(255, 255, 255, 0.2);
 }
 
+/* Firefox Scrollbar */
+.quake-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
 /* Playback Controls */
 .playback-controls {
     margin-top: auto;
@@ -409,6 +415,10 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+input[type="range"]::-moz-range-thumb:hover {
     transform: scale(1.2);
 }
 
