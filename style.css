@@ -83,10 +83,10 @@ header h1 {
     -webkit-text-fill-color: transparent;
 }
 
-.header-right {
+.header-title {
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
 .live-indicator {
@@ -101,12 +101,10 @@ header h1 {
 }
 
 .version-badge {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.05);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
     font-family: monospace;
+    letter-spacing: 0.05em;
 }
 
 .pulse-dot {
