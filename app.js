@@ -69,7 +69,7 @@ function triggerShake() {
     setTimeout(() => dom.app.classList.remove('shaking'), 500);
 }
 
-function initGlobe() {
+async function initGlobe() {
     if (typeof Cesium === 'undefined') {
         console.error('Cesium not loaded');
         return;
@@ -77,12 +77,17 @@ function initGlobe() {
 
     let imageryProvider;
 
-    // Check for valid token
-    if (typeof CESIUM_TOKEN !== 'undefined' && CESIUM_TOKEN !== 'YOUR_SECRET_TOKEN') {
-        Cesium.Ion.defaultAccessToken = CESIUM_TOKEN;
-        imageryProvider = new Cesium.IonImageryProvider({ assetId: 3 }); // Bing Maps Aerial
-    } else {
-        console.warn('CESIUM_TOKEN not found or invalid. Using fallback imagery.');
+    try {
+        // Check for valid token
+        if (typeof CESIUM_TOKEN !== 'undefined' && CESIUM_TOKEN !== 'YOUR_SECRET_TOKEN') {
+            Cesium.Ion.defaultAccessToken = CESIUM_TOKEN;
+            // Use Bing Maps Aerial with Labels (Asset ID 3)
+            imageryProvider = await Cesium.IonImageryProvider.fromAssetId(3);
+        } else {
+            throw new Error('Token missing or invalid');
+        }
+    } catch (e) {
+        console.warn('Cesium Ion imagery failed or token missing. Using fallback.', e);
         // Fallback to CartoDB Dark Matter (matches 2D map, no token needed)
         imageryProvider = new Cesium.UrlTemplateImageryProvider({
             url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
@@ -124,6 +129,9 @@ function initGlobe() {
             });
         }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // Render quakes after initialization
+    renderGlobeQuakes();
 }
 
 function toggleView() {
@@ -136,8 +144,9 @@ function toggleView() {
         if (!cesiumViewer) {
             // Slight delay to ensure container is visible
             setTimeout(initGlobe, 50);
+        } else {
+            renderGlobeQuakes();
         }
-        renderGlobeQuakes();
     } else {
         dom.map.classList.remove('hidden');
         dom.globe.classList.remove('active');
